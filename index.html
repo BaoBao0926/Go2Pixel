@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go2Pixel: Grounding Navigation Goals to Image Pixels for Vision-Language Navigation</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --ink: #111111;
+  --text: #333333;
+  --muted: #666666;
+  --faint: #999999;
+  --line: #dddddd;
+  --line-soft: #eeeeee;
+  --panel: #fafafa;
+  --accent: #005eb8;
+  --accent-dark: #004987;
+  --max: 1080px;
+  --radius: 6px;
+  --sans: Arial, Helvetica, sans-serif;
+  --serif: Georgia, "Times New Roman", serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.6;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, .94);
+  border-bottom: 1px solid var(--line-soft);
+  backdrop-filter: blur(8px);
+}
+.topbar a {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hero {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 46px 22px 24px;
+  text-align: center;
+}
+.venue {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 15px;
+}
+h1 {
+  max-width: 980px;
+  margin: 0 auto 14px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 700;
+  line-height: 1.08;
+}
+.subtitle {
+  max-width: 860px;
+  margin: 0 auto 16px;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.24rem);
+}
+.authors {
+  margin: 0 auto 22px;
+  color: var(--text);
+  font-size: 15px;
+}
+.links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.button:hover {
+  background: var(--accent-dark);
+  text-decoration: none;
+}
+.button.secondary {
+  background: #ffffff;
+  color: var(--accent);
+}
+.button.disabled {
+  border-color: var(--line);
+  background: var(--panel);
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.section {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 42px 22px;
+  border-top: 1px solid var(--line-soft);
+}
+.section:first-of-type { border-top: 0; }
+h2 {
+  margin: 0 0 18px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
+  line-height: 1.2;
+  text-align: center;
+}
+h3 {
+  margin: 0 0 14px;
+  color: var(--ink);
+  font-size: 1.12rem;
+}
+.abstract {
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: var(--serif);
+  font-size: 1.06rem;
+  text-align: justify;
+}
+.section-note {
+  max-width: 860px;
+  margin: -4px auto 24px;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+.image-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(45deg, #f8f8f8 25%, transparent 25%),
+    linear-gradient(-45deg, #f8f8f8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f8f8f8 75%),
+    linear-gradient(-45deg, transparent 75%, #f8f8f8 75%);
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  background-size: 20px 20px;
+  overflow: hidden;
+}
+.image-slot.wide { min-height: 420px; }
+.image-slot.medium { min-height: 300px; }
+.image-slot.small { min-height: 240px; }
+.placeholder-label {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .9);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+}
+.asset-hint {
+  margin-top: 10px;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.video-grid {
+  display: grid;
+  gap: 16px;
+}
+.video-grid.realworld { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.video-grid.simulation { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.video-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  overflow: hidden;
+}
+.video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, #f7f7f7, #eeeeee);
+  border-bottom: 1px solid var(--line-soft);
+}
+.video-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #f2f2f2;
+}
+.video-placeholder {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+}
+.video-caption {
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+.video-caption span {
+  display: block;
+  margin-top: 2px;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+}
+.pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.page-button {
+  min-width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.page-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.page-button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.ablation-block {
+  margin-top: 28px;
+}
+.ablation-block:first-of-type { margin-top: 0; }
+
+.citation {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+footer {
+  padding: 26px 22px 42px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 920px) {
+  .video-grid.realworld,
+  .video-grid.simulation { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .topbar {
+    justify-content: flex-start;
+    gap: 18px;
+    overflow-x: auto;
+  }
+  .hero { padding-top: 34px; }
+  .section { padding: 34px 18px; }
+  .video-grid.realworld,
+  .video-grid.simulation { grid-template-columns: 1fr; }
+  .image-slot.wide { min-height: 280px; }
+  .image-slot { min-height: 240px; }
+}
+</style>
+</head>
+<body>
+<nav class="topbar">
+  <a href="#abstract">Abstract</a>
+  <a href="#method">Method</a>
+  <a href="#realworld">Real-World</a>
+  <a href="#r2r">R2R</a>
+  <a href="#rxr">RxR</a>
+  <a href="#results">Results</a>
+  <a href="#ablation">Ablation</a>
+  <a href="#citation">Citation</a>
+</nav>
+
+<header class="hero">
+  <div class="venue">CoRL 2026 Submission</div>
+  <h1>Go2Pixel: Grounding Navigation Goals to Image Pixels for Vision-Language Navigation</h1>
+  <p class="subtitle">A pixel-based interface that turns high-level vision-language reasoning into navigable image goals.</p>
+  <p class="authors">Anonymous Author(s)</p>
+  <div class="links">
+    <a class="button" href="resources/CORL2026_Go2Pixel.pdf">Paper</a>
+    <span class="button disabled">Code Coming Soon</span>
+    <span class="button disabled">Data Coming Soon</span>
+  </div>
+</header>
+
+<main>
+  <section class="section" id="abstract">
+    <h2>Abstract</h2>
+    <div class="abstract empty"></div>
+  </section>
+
+  <section class="section" id="method">
+    <h2>Method</h2>
+    <p class="section-note">Place the full architecture diagram here.</p>
+    <div class="image-slot wide">
+      <div class="placeholder-label">Method Architecture Figure</div>
+    </div>
+    <div class="asset-hint">Suggested path: resources/figures/method_architecture.png</div>
+  </section>
+
+  <section class="section" id="realworld">
+    <h2>Real-World Experiments</h2>
+    <p class="section-note">Reserved for 16 real-world robot videos. Each page shows a 2 by 2 grid.</p>
+    <div class="video-grid realworld" data-video-grid="realworld"></div>
+    <div class="pager" data-pager="realworld"></div>
+  </section>
+
+  <section class="section" id="r2r">
+    <h2>R2R-CE Qualitative Videos</h2>
+    <p class="section-note">Reserved for 8 R2R videos. Each page shows a 1 by 2 grid.</p>
+    <div class="video-grid simulation" data-video-grid="r2r"></div>
+    <div class="pager" data-pager="r2r"></div>
+  </section>
+
+  <section class="section" id="rxr">
+    <h2>RxR-CE Qualitative Videos</h2>
+    <p class="section-note">Reserved for 8 RxR videos. Each page shows a 1 by 2 grid.</p>
+    <div class="video-grid simulation" data-video-grid="rxr"></div>
+    <div class="pager" data-pager="rxr"></div>
+  </section>
+
+  <section class="section" id="results">
+    <h2>Experimental Results</h2>
+    <p class="section-note">Place the main experiment table screenshot here.</p>
+    <div class="image-slot wide">
+      <div class="placeholder-label">Main Results Table Screenshot</div>
+    </div>
+    <div class="asset-hint">Suggested path: resources/figures/main_results_table.png</div>
+  </section>
+
+  <section class="section" id="ablation">
+    <h2>Ablation Studies</h2>
+
+    <div class="ablation-block">
+      <h3>Output Paradigm</h3>
+      <div class="image-slot medium">
+        <div class="placeholder-label">Output Paradigm Ablation Table</div>
+      </div>
+      <div class="asset-hint">Suggested path: resources/figures/ablation_output_paradigm.png</div>
+    </div>
+
+    <div class="ablation-block">
+      <h3>History Representation and ViKeyMem Visualization</h3>
+      <div class="two-col">
+        <div>
+          <div class="image-slot medium">
+            <div class="placeholder-label">History Representation Ablation Table</div>
+          </div>
+          <div class="asset-hint">Suggested path: resources/figures/ablation_history_representation.png</div>
+        </div>
+        <div>
+          <div class="image-slot medium">
+            <div class="placeholder-label">ViKeyMem Visualization</div>
+          </div>
+          <div class="asset-hint">Suggested path: resources/figures/vikeymem_visualization.png</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ablation-block">
+      <h3>Component Ablation Study</h3>
+      <div class="image-slot medium">
+        <div class="placeholder-label">Component Ablation Table</div>
+      </div>
+      <div class="asset-hint">Suggested path: resources/figures/component_ablation_study.png</div>
+    </div>
+  </section>
+
+  <section class="section" id="citation">
+    <h2>Citation</h2>
+    <div class="citation">
+      <pre>@inproceedings{anonymous2026go2pixel,
+  title     = {Go2Pixel: Grounding Navigation Goals to Image Pixels for Vision-Language Navigation},
+  author    = {Anonymous Author(s)},
+  booktitle = {Conference on Robot Learning},
+  year      = {2026},
+  note      = {Under review}
+}</pre>
+    </div>
+  </section>
+</main>
+
+<script>
+const videoSets = {
+  realworld: {
+    prefix: "realworld",
+    label: "Real-World Trial",
+    shortLabel: "Video",
+    total: 16,
+    perPage: 4
+  },
+  r2r: {
+    prefix: "r2r",
+    label: "R2R Episode",
+    shortLabel: "R2R",
+    total: 8,
+    perPage: 2
+  },
+  rxr: {
+    prefix: "rxr",
+    label: "RxR Episode",
+    shortLabel: "RxR",
+    total: 8,
+    perPage: 2
+  }
+};
+
+function twoDigit(value) {
+  return String(value).padStart(2, "0");
+}
+
+function renderVideoCard(set, index) {
+  const number = twoDigit(index);
+  const path = `resources/videos/${set.prefix}_${number}.mp4`;
+  return `
+    <div class="video-card">
+      <div class="video-frame">
+        <div class="video-placeholder">${set.shortLabel} ${number}</div>
+      </div>
+      <div class="video-caption">${set.label} ${number}<span>${path}</span></div>
+    </div>
+  `;
+}
+
+function renderVideoPage(key, page) {
+  const set = videoSets[key];
+  const grid = document.querySelector(`[data-video-grid="${key}"]`);
+  const pager = document.querySelector(`[data-pager="${key}"]`);
+  const totalPages = Math.ceil(set.total / set.perPage);
+  const start = (page - 1) * set.perPage + 1;
+  const end = Math.min(start + set.perPage - 1, set.total);
+
+  grid.innerHTML = "";
+  for (let index = start; index <= end; index += 1) {
+    grid.insertAdjacentHTML("beforeend", renderVideoCard(set, index));
+  }
+
+  pager.innerHTML = "";
+  for (let index = 1; index <= totalPages; index += 1) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `page-button${index === page ? " active" : ""}`;
+    button.textContent = index;
+    button.setAttribute("aria-label", `${set.label} page ${index}`);
+    button.addEventListener("click", () => renderVideoPage(key, index));
+    pager.appendChild(button);
+  }
+}
+
+Object.keys(videoSets).forEach((key) => renderVideoPage(key, 1));
+</script>
+
+<footer>
+  Go2Pixel project page. Layout inspired by CMU-VLN.
+</footer>
+</body>
+</html>
