@@ -146,6 +146,9 @@ h3 {
   font-size: 1.06rem;
   text-align: justify;
 }
+.abstract.empty {
+  min-height: 150px;
+}
 .section-note {
   max-width: 860px;
   margin: -4px auto 24px;
@@ -173,6 +176,11 @@ h3 {
 .image-slot.wide { min-height: 420px; }
 .image-slot.medium { min-height: 300px; }
 .image-slot.small { min-height: 240px; }
+.image-slot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
 .placeholder-label {
   padding: 10px 14px;
   border: 1px solid var(--line);
@@ -353,30 +361,29 @@ footer {
 
   <section class="section" id="method">
     <h2>Method</h2>
-    <p class="section-note">Place the full architecture diagram here.</p>
+    <p class="section-note">Overview of the Go2Pixel architecture.</p>
     <div class="image-slot wide">
-      <div class="placeholder-label">Method Architecture Figure</div>
+      <img src="resources/images/pipeline.jpg" alt="Go2Pixel method architecture pipeline">
     </div>
-    <div class="asset-hint">Suggested path: resources/figures/method_architecture.png</div>
   </section>
 
   <section class="section" id="realworld">
     <h2>Real-World Experiments</h2>
-    <p class="section-note">Reserved for 16 real-world robot videos. Each page shows a 2 by 2 grid.</p>
+    <p class="section-note">16 real-world robot videos from resources/video/real_world. Each page shows a 2 by 2 grid.</p>
     <div class="video-grid realworld" data-video-grid="realworld"></div>
     <div class="pager" data-pager="realworld"></div>
   </section>
 
   <section class="section" id="r2r">
     <h2>R2R-CE Qualitative Videos</h2>
-    <p class="section-note">Reserved for 8 R2R videos. Each page shows a 1 by 2 grid.</p>
+    <p class="section-note">Reserved for 8 R2R videos from resources/video/r2r. Each page shows a 1 by 2 grid.</p>
     <div class="video-grid simulation" data-video-grid="r2r"></div>
     <div class="pager" data-pager="r2r"></div>
   </section>
 
   <section class="section" id="rxr">
     <h2>RxR-CE Qualitative Videos</h2>
-    <p class="section-note">Reserved for 8 RxR videos. Each page shows a 1 by 2 grid.</p>
+    <p class="section-note">Reserved for 8 RxR videos from resources/video/rxr. Each page shows a 1 by 2 grid.</p>
     <div class="video-grid simulation" data-video-grid="rxr"></div>
     <div class="pager" data-pager="rxr"></div>
   </section>
@@ -445,24 +452,24 @@ footer {
 <script>
 const videoSets = {
   realworld: {
-    prefix: "realworld",
+    folder: "real_world",
     label: "Real-World Trial",
     shortLabel: "Video",
     total: 16,
     perPage: 4
   },
   r2r: {
-    prefix: "r2r",
+    folder: "r2r",
     label: "R2R Episode",
     shortLabel: "R2R",
-    total: 8,
+    files: ["182_h264.mp4", "212_h264.mp4", "233_h264.mp4", "254_h264.mp4", "351_h264.mp4", "508_h264.mp4", "787_h264.mp4", "1390_h264.mp4"],
     perPage: 2
   },
   rxr: {
-    prefix: "rxr",
+    folder: "rxr",
     label: "RxR Episode",
     shortLabel: "RxR",
-    total: 8,
+    files: ["68_h264.mp4", "631_h264.mp4", "2111_h264.mp4", "3331_h264.mp4", "3464_h264.mp4", "4307_h264.mp4", "4927_h264.mp4", "6438_h264.mp4"],
     perPage: 2
   }
 };
@@ -472,12 +479,16 @@ function twoDigit(value) {
 }
 
 function renderVideoCard(set, index) {
-  const number = twoDigit(index);
-  const path = `resources/videos/${set.prefix}_${number}.mp4`;
+  const file = set.files ? set.files[index - 1] : `${twoDigit(index)}.mp4`;
+  const number = file.replace(/\.mp4$/i, "");
+  const path = `resources/video/${set.folder}/${file}`;
   return `
     <div class="video-card">
       <div class="video-frame">
-        <div class="video-placeholder">${set.shortLabel} ${number}</div>
+        <video controls muted playsinline preload="metadata" aria-label="${set.label} ${number}">
+          <source src="${path}" type="video/mp4">
+          ${set.shortLabel} ${number}
+        </video>
       </div>
       <div class="video-caption">${set.label} ${number}<span>${path}</span></div>
     </div>
@@ -488,9 +499,10 @@ function renderVideoPage(key, page) {
   const set = videoSets[key];
   const grid = document.querySelector(`[data-video-grid="${key}"]`);
   const pager = document.querySelector(`[data-pager="${key}"]`);
-  const totalPages = Math.ceil(set.total / set.perPage);
+  const totalVideos = set.files ? set.files.length : set.total;
+  const totalPages = Math.ceil(totalVideos / set.perPage);
   const start = (page - 1) * set.perPage + 1;
-  const end = Math.min(start + set.perPage - 1, set.total);
+  const end = Math.min(start + set.perPage - 1, totalVideos);
 
   grid.innerHTML = "";
   for (let index = start; index <= end; index += 1) {
