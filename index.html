@@ -149,6 +149,18 @@ h3 {
 .abstract.empty {
   min-height: 150px;
 }
+.contributions {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-left: 22px;
+  font-size: 1rem;
+}
+.contributions li {
+  margin-bottom: 10px;
+}
+.contributions li:last-child {
+  margin-bottom: 0;
+}
 .section-note {
   max-width: 860px;
   margin: -4px auto 24px;
@@ -279,6 +291,30 @@ h3 {
   grid-template-columns: 1fr 1fr;
   gap: 18px;
 }
+.stacked-media {
+  display: grid;
+  gap: 18px;
+}
+.collapsible-figure {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  overflow: hidden;
+}
+.collapsible-figure summary {
+  padding: 12px 14px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.collapsible-figure[open] summary {
+  border-bottom: 1px solid var(--line-soft);
+}
+.collapsible-figure .image-slot {
+  border: 0;
+  border-radius: 0;
+}
 .ablation-block {
   margin-top: 28px;
 }
@@ -356,7 +392,18 @@ footer {
 <main>
   <section class="section" id="abstract">
     <h2>Abstract</h2>
-    <div class="abstract empty"></div>
+    <div class="abstract">
+      <p>Recent vision-language model (VLM) based methods for vision-and-language navigation in continuous environments (VLN-CE) commonly formulate navigation as low-level action prediction. However, this action-centric interface is often ambiguous, tied to short-horizon motion primitives, and inefficient due to repeated low-level querying. In this work, we propose <strong>Go2Pixel</strong>, a pixel-based paradigm that reformulates VLN-CE as navigable pixel grounding. Instead of predicting actions, Go2Pixel uses the image plane as a unified spatial interface between VLM reasoning and executable robot motion: the model outputs a navigable pixel coordinate, which is either back-projected into a 3D waypoint for forward navigation or interpreted through semantic padding regions for turning and stopping. To support long-horizon pixel grounding, we introduce a visibility-aware keyframe history representation that preserves compact navigation history images with trajectory overlays. To bridge the gap between pretrained VLM and pixel-space navigation, we further introduce lightweight adaptations, including visual semantic embeddings and coordinate-aware auxiliary losses, to improve the model's understanding of navigation-specific visual patterns and pixel-coordinate prediction. Experiments on R2R-CE and RxR-CE show that Go2Pixel achieves competitive navigation performance while substantially reducing VLM inference cost. On R2R-CE Val-Unseen, Go2Pixel achieves 54.1% SR and 52.5% SPL, while reducing average VLM calls from 46.62 to 7.75 compared with direct one-action prediction.</p>
+    </div>
+  </section>
+
+  <section class="section" id="contributions">
+    <h2>Contributions</h2>
+    <ul class="contributions">
+      <li>We propose <strong>Go2Pixel</strong>, a pixel-based output interface that reformulates VLM-based VLN-CE from low-level action prediction into image-space goal grounding, providing an interface between VLM reasoning and executable motion.</li>
+      <li>We introduce <strong>ViKeyMem</strong> for compact visibility-aware history representation, together with lightweight VLM adaptations that improve pixel grounding.</li>
+      <li>Experiments on R2R-CE and RxR-CE show that Go2Pixel achieves competitive performance while substantially reducing VLM inference calls.</li>
+    </ul>
   </section>
 
   <section class="section" id="method">
@@ -390,11 +437,9 @@ footer {
 
   <section class="section" id="results">
     <h2>Experimental Results</h2>
-    <p class="section-note">Place the main experiment table screenshot here.</p>
     <div class="image-slot wide">
-      <div class="placeholder-label">Main Results Table Screenshot</div>
+      <img src="resources/images/main_result.png" alt="Go2Pixel experimental results table">
     </div>
-    <div class="asset-hint">Suggested path: resources/figures/main_results_table.png</div>
   </section>
 
   <section class="section" id="ablation">
@@ -403,25 +448,28 @@ footer {
     <div class="ablation-block">
       <h3>Output Paradigm</h3>
       <div class="image-slot medium">
-        <div class="placeholder-label">Output Paradigm Ablation Table</div>
+        <img src="resources/images/ablation_paradigm.png" alt="Output paradigm ablation study table">
       </div>
-      <div class="asset-hint">Suggested path: resources/figures/ablation_output_paradigm.png</div>
     </div>
 
     <div class="ablation-block">
       <h3>History Representation and ViKeyMem Visualization</h3>
-      <div class="two-col">
+      <div class="stacked-media">
         <div>
           <div class="image-slot medium">
-            <div class="placeholder-label">History Representation Ablation Table</div>
+            <img src="resources/images/ablation_history.png" alt="History representation ablation study table">
           </div>
-          <div class="asset-hint">Suggested path: resources/figures/ablation_history_representation.png</div>
         </div>
         <div>
           <div class="image-slot medium">
-            <div class="placeholder-label">ViKeyMem Visualization</div>
+            <img src="resources/images/ViKeyMem.png" alt="ViKeyMem visualization">
           </div>
-          <div class="asset-hint">Suggested path: resources/figures/vikeymem_visualization.png</div>
+          <details class="collapsible-figure">
+            <summary>Full ViKeyMem Visualization</summary>
+            <div class="image-slot medium">
+              <img src="resources/images/ViKeyMem_all.jpg" alt="Full ViKeyMem visualization">
+            </div>
+          </details>
         </div>
       </div>
     </div>
@@ -429,9 +477,15 @@ footer {
     <div class="ablation-block">
       <h3>Component Ablation Study</h3>
       <div class="image-slot medium">
-        <div class="placeholder-label">Component Ablation Table</div>
+        <img src="resources/images/ablation_component.png" alt="Component ablation study table">
       </div>
-      <div class="asset-hint">Suggested path: resources/figures/component_ablation_study.png</div>
+    </div>
+
+    <div class="ablation-block">
+      <h3>Maximum Number of Low-Level Execution Steps</h3>
+      <div class="image-slot medium">
+        <img src="resources/images/ablation_maxstep.png" alt="Maximum number of low-level execution steps ablation study table">
+      </div>
     </div>
   </section>
 
